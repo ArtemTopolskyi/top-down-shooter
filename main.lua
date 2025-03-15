@@ -136,6 +136,22 @@ function handlePlayerMovement(dt)
   if love.keyboard.isDown("d") then
     player.x = player.x + player.movementSpeed * dt
   end
+
+  if player.x < 0 then
+    player.x = 0
+  end
+
+  if player.x > screen.width then
+    player.x = screen.width
+  end
+
+  if player.y < 0 then
+    player.y = 0
+  end
+
+  if player.y > screen.height then
+    player.y = screen.height
+  end
 end
 
 function handlePlayerRotation()
@@ -167,9 +183,17 @@ function handleDistanceBetweenPlayerAndZombies()
 end
 
 function handleBullets(dt)
-  for _, bullet in ipairs(bullets) do
+  for i = #bullets, 1, -1 do  -- Iterate backward for safe removal
+    local bullet = bullets[i]
+
+    -- Update bullet position
     bullet.x = bullet.x + (math.cos(bullet.direction) * bullet.speed * dt)
     bullet.y = bullet.y + (math.sin(bullet.direction) * bullet.speed * dt)
+
+    -- Remove bullet if it leaves the screen boundaries
+    if bullet.x < 0 or bullet.x > screen.width or bullet.y < 0 or bullet.y > screen.height then
+      table.remove(bullets, i)
+    end
   end
 end
 

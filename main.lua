@@ -44,6 +44,8 @@ function love.update(dt)
   handleBullets(dt)
 
   handleDistanceBetweenPlayerAndZombies()
+
+  handleCollisionBetweenBulletAndZombies()
 end
 
 function love.draw()
@@ -191,8 +193,44 @@ function handleBullets(dt)
     bullet.y = bullet.y + (math.sin(bullet.direction) * bullet.speed * dt)
 
     -- Remove bullet if it leaves the screen boundaries
-    if bullet.x < 0 or bullet.x > screen.width or bullet.y < 0 or bullet.y > screen.height then
+    local isBulletOutsideScreen = (
+      bullet.x < 0
+        or bullet.x > screen.width
+        or bullet.y < 0
+        or bullet.y > screen.height
+    )
+
+    if isBulletOutsideScreen then
       table.remove(bullets, i)
+    end
+  end
+end
+
+function handleCollisionBetweenBulletAndZombies()
+  for i, bullet in ipairs(bullets) do
+    for j, zombie in ipairs(zombies) do
+      local distance = distanceBetweenPoints(bullet.x, bullet.y, zombie.x, zombie.y)
+
+      if (distance < (bullet.width / 2 + zombie.width / 2)) then
+        zombie.dead = true
+        bullet.aimedZombie = true
+      end
+    end
+  end
+
+  for i = #bullets, 1, -1 do
+    local bullet = bullets[i]
+
+    if bullet.aimedZombie then
+      table.remove(bullets, i)
+    end
+  end
+
+  for i = #zombies, 1, -1 do
+    local zombie = zombies[i]
+
+    if zombie.dead then
+      table.remove(zombies, i)
     end
   end
 end
@@ -222,6 +260,7 @@ function spawnZombie()
     height = sprites.zombie:getHeight(),
     rotation = 0,
     movementSpeed = 100,
+    dead = false,
   }
 
   newZombie.rotation = calculateAngleBetweenZombieAndPlayer(newZombie)
@@ -233,8 +272,11 @@ function shootBullet()
   local bullet = {
     x = player.x,
     y = player.y,
+    width = sprites.bullet:getWidth() / 5, -- as we scale the bullet to 0.2 in render function
+    height = sprites.bullet:getHeight() / 5,
     direction = player.rotation,
     speed = 700,
+    aimedZombie = false,
   }
 
   table.insert(bullets, bullet)

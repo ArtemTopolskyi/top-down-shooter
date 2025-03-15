@@ -27,6 +27,7 @@ function love.load()
   }
 
   zombies = {}
+  bullets = {}
 end
 
 function love.update(dt)
@@ -40,6 +41,8 @@ function love.update(dt)
 
   handleZombieRotation()
 
+  handleBullets(dt)
+
   handleDistanceBetweenPlayerAndZombies()
 end
 
@@ -50,11 +53,17 @@ function love.draw()
 
   renderPlayer()
 
+  renderBullets()
+
   renderFPS()
 end
 
 function love.mousepressed(x, y, button)
   if button == 1 then
+    shootBullet()
+  end
+
+  if button == 2 then
     spawnZombie()
   end
 end
@@ -92,6 +101,21 @@ function renderZombies()
       nil,
       sprites.zombie:getWidth() / 2,
       sprites.zombie:getHeight() / 2
+    )
+  end
+end
+
+function renderBullets()
+  for _, bullet in ipairs(bullets) do
+    love.graphics.draw(
+      sprites.bullet,
+      bullet.x,
+      bullet.y,
+      bullet.direction,
+      0.2,
+      0.2,
+      sprites.bullet:getWidth() / 2,
+      sprites.bullet:getHeight() / 2
     )
   end
 end
@@ -142,6 +166,13 @@ function handleDistanceBetweenPlayerAndZombies()
   end
 end
 
+function handleBullets(dt)
+  for _, bullet in ipairs(bullets) do
+    bullet.x = bullet.x + (math.cos(bullet.direction) * bullet.speed * dt)
+    bullet.y = bullet.y + (math.sin(bullet.direction) * bullet.speed * dt)
+  end
+end
+
 function calculateAngleBetweenPlayerAndMouse()
   local mouseX, mouseY = love.mouse.getPosition()
   local angle = math.atan2(mouseY - player.y, mouseX - player.x)
@@ -172,4 +203,15 @@ function spawnZombie()
   newZombie.rotation = calculateAngleBetweenZombieAndPlayer(newZombie)
 
   table.insert(zombies, newZombie)
+end
+
+function shootBullet()
+  local bullet = {
+    x = player.x,
+    y = player.y,
+    direction = player.rotation,
+    speed = 700,
+  }
+
+  table.insert(bullets, bullet)
 end

@@ -34,6 +34,8 @@ function love.load()
     rotation = math.pi / 2,
   }
 
+  score = 0
+
   zombies = {}
   bullets = {}
 
@@ -80,6 +82,8 @@ function love.draw()
 
     renderBullets()
 
+    renderScore()
+
     renderFPS()
   end
 
@@ -107,6 +111,7 @@ end
 function restartGame()
   zombies = {}
   bullets = {}
+  score = 0
   gameTimer = 0
   spawnZombieTimer = 1
   gameState = GameState.Game
@@ -118,10 +123,9 @@ function handleSpawnZombieTimer(dt)
   if spawnZombieTimer <= 0 then
     -- increase the number of zombies based on the game timer
     local baseZombiesNumber = 1
-    local additionalZombiesNumber = math.floor(math.sqrt(gameTimer / 10))
+    local additionalZombiesNumber = math.floor(math.sqrt(gameTimer))
 
     for i = 1, baseZombiesNumber + additionalZombiesNumber do
-      print("spawning zombie", i)
       spawnZombie()
     end
 
@@ -137,11 +141,17 @@ end
 function renderGameOver()
   love.graphics.setFont(fonts.interface)
   love.graphics.printf("Game Over", 0, screen.height / 2, screen.width, "center")
-  love.graphics.printf("Press space to restart", 0, screen.height / 2 + fonts.interface:getHeight(), screen.width, "center")
+  love.graphics.printf("Score: "..tostring(score), 0, screen.height / 2 + fonts.interface:getHeight(), screen.width, "center")
+  love.graphics.printf("Press space to restart", 0, screen.height / 2 + fonts.interface:getHeight() * 2, screen.width, "center")
 end
 
 function renderBackground()
   love.graphics.draw(sprites.background, 0, 0)
+end
+
+function renderScore()
+  love.graphics.setFont(fonts.interface)
+  love.graphics.printf("Score: "..tostring(score), 10, 10, screen.width, "left")
 end
 
 function renderFPS()
@@ -283,6 +293,8 @@ function handleCollisionBetweenBulletAndZombies()
       if (distance < (bullet.width / 2 + zombie.width / 2)) then
         zombie.dead = true
         bullet.aimedZombie = true
+
+        score = score + 1
       end
     end
   end
@@ -341,12 +353,24 @@ end
 
 function generateZombieSpawnPosition()
   local angle = love.math.random() * 2 * math.pi
-  local distance = math.max(screen.width, screen.height) -- Use larger screen dimension
-
-  -- Spawn outside visible area by adding extra padding
-  local padding = 50
-  local x = screen.width / 2 + (distance + padding) * math.cos(angle) 
-  local y = screen.height / 2 + (distance + padding) * math.sin(angle)
+  local x, y
+  
+  -- Randomly choose which edge to spawn from
+  local edge = love.math.random(1, 4)
+  
+  if edge == 1 then -- Top
+    x = love.math.random(-50, screen.width + 50)
+    y = -50
+  elseif edge == 2 then -- Right
+    x = screen.width + 50
+    y = love.math.random(-50, screen.height + 50)
+  elseif edge == 3 then -- Bottom
+    x = love.math.random(-50, screen.width + 50)
+    y = screen.height + 50
+  else -- Left
+    x = -50
+    y = love.math.random(-50, screen.height + 50)
+  end
 
   return x, y
 end

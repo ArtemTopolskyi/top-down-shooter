@@ -1,8 +1,16 @@
+GameState = {
+  Menu = 1,
+  Game = 2,
+  GameOver = 3,
+}
+
 function love.load()
   gameTimer = 0
+  gameState = GameState.Menu
 
   fonts = {
     system = love.graphics.newFont(10),
+    interface = love.graphics.newFont(20),
   }
 
   screen = {
@@ -28,46 +36,108 @@ function love.load()
 
   zombies = {}
   bullets = {}
+
+  spawnZombieTimer = 0
 end
 
 function love.update(dt)
-  gameTimer = gameTimer + dt
-
-  handlePlayerMovement(dt)
-
-  handlePlayerRotation()
-
-  handleZombieMovement(dt)
-
-  handleZombieRotation()
-
-  handleBullets(dt)
-
-  handleDistanceBetweenPlayerAndZombies()
-
-  handleCollisionBetweenBulletAndZombies()
+  if gameState == GameState.Game then
+    gameTimer = gameTimer + dt
+  
+    handleSpawnZombieTimer(dt)
+  
+    handlePlayerMovement(dt)
+  
+    handlePlayerRotation()
+  
+    handleZombieMovement(dt)
+  
+    handleZombieRotation()
+  
+    handleBullets(dt)
+  
+    handleDistanceBetweenPlayerAndZombies()
+  
+    handleCollisionBetweenBulletAndZombies()
+  end
 end
 
 function love.draw()
-  renderBackground()
+  if gameState == GameState.Menu then
+    renderBackground()
 
-  renderZombies()
+    renderMenu()
 
-  renderPlayer()
+    renderFPS()
+  end
 
-  renderBullets()
+  if gameState == GameState.Game then
+    renderBackground()
 
-  renderFPS()
+    renderZombies()
+
+    renderPlayer()
+
+    renderBullets()
+
+    renderFPS()
+  end
+
+  if gameState == GameState.GameOver then
+    renderBackground()
+
+    renderGameOver()
+
+    renderFPS()
+  end
 end
 
 function love.mousepressed(x, y, button)
   if button == 1 then
     shootBullet()
   end
+end
 
-  if button == 2 then
-    spawnZombie()
+function love.keypressed(key)
+  if (gameState == GameState.Menu or gameState == GameState.GameOver) and (key == "space") then
+    restartGame()
   end
+end
+
+function restartGame()
+  zombies = {}
+  bullets = {}
+  gameTimer = 0
+  spawnZombieTimer = 1
+  gameState = GameState.Game
+end
+
+function handleSpawnZombieTimer(dt)
+  spawnZombieTimer = spawnZombieTimer - dt
+
+  if spawnZombieTimer <= 0 then
+    -- increase the number of zombies based on the game timer
+    local baseZombiesNumber = 1
+    local additionalZombiesNumber = math.floor(math.sqrt(gameTimer / 10))
+
+    for i = 1, baseZombiesNumber + additionalZombiesNumber do
+      print("spawning zombie", i)
+      spawnZombie()
+    end
+
+    spawnZombieTimer = 2
+  end
+end
+
+function renderMenu()
+  love.graphics.setFont(fonts.interface)
+  love.graphics.printf("Press space to start", 0, screen.height / 2, screen.width, "center")
+end
+
+function renderGameOver()
+  love.graphics.setFont(fonts.interface)
+  love.graphics.printf("Game Over", 0, screen.height / 2, screen.width, "center")
+  love.graphics.printf("Press space to restart", 0, screen.height / 2 + fonts.interface:getHeight(), screen.width, "center")
 end
 
 function renderBackground()
@@ -178,8 +248,7 @@ function handleDistanceBetweenPlayerAndZombies()
     local distance = distanceBetweenPoints(player.x, player.y, zombie.x, zombie.y)
 
     if distance < (player.width / 2 + zombie.width / 2) then
-      print("player is dead")
-      zombies = {}
+      gameState = GameState.GameOver
     end
   end
 end
@@ -253,9 +322,11 @@ function distanceBetweenPoints(x1, y1, x2, y2)
 end
 
 function spawnZombie()
+  local spawnX, spawnY = generateZombieSpawnPosition()
+
   local newZombie = {
-    x = love.math.random(0, screen.width),
-    y = love.math.random(0, screen.height),
+    x = spawnX,
+    y = spawnY,
     width = sprites.zombie:getWidth(),
     height = sprites.zombie:getHeight(),
     rotation = 0,
@@ -266,6 +337,18 @@ function spawnZombie()
   newZombie.rotation = calculateAngleBetweenZombieAndPlayer(newZombie)
 
   table.insert(zombies, newZombie)
+end
+
+function generateZombieSpawnPosition()
+  local angle = love.math.random() * 2 * math.pi
+  local distance = math.max(screen.width, screen.height) -- Use larger screen dimension
+
+  -- Spawn outside visible area by adding extra padding
+  local padding = 50
+  local x = screen.width / 2 + (distance + padding) * math.cos(angle) 
+  local y = screen.height / 2 + (distance + padding) * math.sin(angle)
+
+  return x, y
 end
 
 function shootBullet()

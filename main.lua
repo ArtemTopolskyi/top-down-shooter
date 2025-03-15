@@ -39,6 +39,8 @@ function love.update(dt)
   handleZombieMovement(dt)
 
   handleZombieRotation()
+
+  handleDistanceBetweenPlayerAndZombies()
 end
 
 function love.draw()
@@ -129,6 +131,17 @@ function handleZombieRotation()
   end
 end
 
+function handleDistanceBetweenPlayerAndZombies()
+  for _, zombie in ipairs(zombies) do
+    local distance = distanceBetweenPoints(player.x, player.y, zombie.x, zombie.y)
+
+    if distance < (player.width / 2 + zombie.width / 2) then
+      print("player is dead")
+      zombies = {}
+    end
+  end
+end
+
 function calculateAngleBetweenPlayerAndMouse()
   local mouseX, mouseY = love.mouse.getPosition()
   local angle = math.atan2(mouseY - player.y, mouseX - player.x)
@@ -142,10 +155,16 @@ function calculateAngleBetweenZombieAndPlayer(zombie)
   return angle
 end
 
+function distanceBetweenPoints(x1, y1, x2, y2)
+  return math.sqrt((x2 - x1)^2 + (y2 - y1)^2)
+end
+
 function spawnZombie()
   local newZombie = {
     x = love.math.random(0, screen.width),
     y = love.math.random(0, screen.height),
+    width = sprites.zombie:getWidth(),
+    height = sprites.zombie:getHeight(),
     rotation = 0,
     movementSpeed = 100,
   }
